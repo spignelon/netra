@@ -7,9 +7,23 @@
 (function () {
   var toggle = document.querySelector("[data-nav-toggle]");
   var menu = document.getElementById("mobileNav");
+  var header = document.querySelector(".topbar");
   if (!toggle || !menu) return;
 
+  // The menu is position:fixed (see .topbar-mobile-nav) so it stays
+  // attached to the viewport regardless of scroll position, rather than
+  // opening at its original document position — which, on a page scrolled
+  // any real distance down, would render off-screen above the sticky
+  // header and look like the toggle button simply isn't working. Measure
+  // the header's actual rendered height each time, rather than hardcoding
+  // one, since it's cheap and avoids drift if the header's padding/content
+  // ever changes.
+  function positionMenu() {
+    if (header) menu.style.top = header.getBoundingClientRect().bottom + "px";
+  }
+
   function setOpen(open) {
+    if (open) positionMenu();
     menu.hidden = !open;
     toggle.setAttribute("aria-expanded", String(open));
   }
