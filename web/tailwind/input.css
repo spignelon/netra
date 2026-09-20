@@ -124,9 +124,27 @@
   .topbar-mobile-nav a.active { @apply text-primary; }
   .topbar-mobile-nav[hidden] { @apply hidden; }
   .nav-toggle {
-    @apply md:hidden inline-flex items-center justify-center w-9 h-9 border border-border bg-transparent text-text cursor-pointer;
+    @apply md:hidden inline-flex items-center justify-center w-9 h-9 border border-border bg-transparent text-text cursor-pointer shrink-0;
   }
-  .logout-form { @apply m-0; }
+  /* Mobile-only settings shortcut (gear icon) — the "Settings" text link
+     inside .topbar nav already covers this on desktop, so this stays
+     hidden there. ml-auto pushes it to the row's far right on mobile,
+     where .topbar nav (which normally provides that flex-1 spacer) is
+     hidden and unavailable to lean on. */
+  .nav-settings-icon {
+    @apply flex md:hidden items-center justify-center w-9 h-9 border border-border bg-transparent text-muted no-underline cursor-pointer ml-auto shrink-0;
+  }
+  .nav-settings-icon:hover, .nav-settings-icon.active { @apply text-primary border-primary; }
+  .logout-form { @apply m-0 hidden md:block; }
+  /* Log out lives inside the mobile dropdown instead of the top row on
+     small screens — styled to match the dropdown's own <a> links exactly
+     (same classes can't be reused directly since this is a <button> in a
+     <form>, not an <a>). */
+  .mobile-nav-logout-form { @apply m-0; }
+  .mobile-nav-logout-form button {
+    @apply w-full text-left bg-transparent border-0 text-muted font-medium px-1 py-2 cursor-pointer;
+  }
+  .mobile-nav-logout-form button:hover { @apply text-primary; }
 
   .page { @apply max-w-[1080px] mx-auto px-4 md:px-5 pt-6 pb-16; }
   .page-header { @apply flex flex-wrap items-center justify-between gap-3 mb-5; }
@@ -272,4 +290,6 @@
   .topbar-conceal nav a.active, .topbar-conceal.topbar-mobile-nav a.active { @apply text-white! underline; }
   .topbar-conceal .btn-ghost { @apply text-white! border-white/40!; }
   .topbar-conceal .nav-toggle { @apply text-white! border-white/40!; }
+  .topbar-conceal .nav-settings-icon { @apply text-white! border-white/40!; }
+  .topbar-conceal.topbar-mobile-nav .mobile-nav-logout-form button { @apply text-white!; }
 }
