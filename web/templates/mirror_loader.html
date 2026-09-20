@@ -6,9 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>Loading…</title>
-  <!-- A visitor to this page is the actual capture target, not the admin —
-       never let it inherit /favicon.ico's Netra-or-Nextcloud icon via the
-       browser's automatic fallback; explicitly declare no icon instead. -->
   <link rel="icon" href="data:,">
   <style>
     body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color: #222; }
@@ -43,12 +40,6 @@
         settled = true;
         location.replace(DIRECT_URL);
       }
-      // Safety net: this page (served at /p/{slug}, no trailing slash) isn't
-      // itself within the registered scope (/p/{slug}/), so
-      // navigator.serviceWorker.ready — which resolves against the CURRENT
-      // document's matching registration — never resolves here. Poll the
-      // registration's own worker state instead, with a timeout fallback in
-      // case anything else goes wrong, so this never hangs on a blank page.
       setTimeout(fallback, 6000);
 
       if (!("serviceWorker" in navigator)) {
