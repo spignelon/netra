@@ -248,7 +248,13 @@ func TestMirrorSSRFGuardBlocksPrivateTargets(t *testing.T) {
 			if strings.Contains(body, "TOP-SECRET-INTERNAL-CONTENT") {
 				t.Fatalf("SSRF guard did not block %q — the private target's real content was relayed back", dest)
 			}
-			if !strings.Contains(body, "Could not load") {
+			// The fallback card (clone.html) deliberately shows no error text
+			// to the visitor — see ClonePageView's comment on why a blocked/
+			// failed fetch must never look different from an intentionally
+			// bare link. "Continue to site" is the one thing it always
+			// renders when a destination is set, so it's what confirms the
+			// fallback card rendered instead of, say, the app crashing.
+			if !strings.Contains(body, "Continue to site") {
 				t.Fatalf("expected the blocked-fetch fallback card for %q, got: %s", dest, body)
 			}
 		})

@@ -327,8 +327,22 @@ func (h *Handler) GPSPageView(w http.ResponseWriter, r *http.Request) {
 		err = mirror.ServeRaw(w, r, link.Config.CloneURL, beacon)
 	}
 	if err != nil {
+		// Same reasoning as ClonePageView's fallback: never show a visitor
+		// anything that hints the live proxy failed. Fall back to the same
+		// built-in decoy theme GPSPage renders when no CloneURL is set at
+		// all, rather than a bare error response.
 		log.Printf("gps clone view: mirror %q: %v", link.Config.CloneURL, err)
-		http.Error(w, "could not load page", http.StatusBadGateway)
+		theme := link.Config.Theme
+		if theme == "" {
+			theme = "cats"
+		}
+		h.render(w, "decoy.html", map[string]any{
+			"Slug":     link.Slug,
+			"EventID":  eventID,
+			"Theme":    theme,
+			"Redirect": link.Config.Destination,
+			"Label":    link.Label,
+		})
 	}
 }
 
@@ -551,6 +565,12 @@ func (h *Handler) ClonePageView(w http.ResponseWriter, r *http.Request) {
 		err = mirror.ServeRaw(w, r, dest, beacon)
 	}
 	if err != nil {
+		// Diagnostic detail goes to the server log for the admin only — a
+		// visitor hitting this link must never see anything suggesting a
+		// proxy/mirror failed behind the scenes (that's a dead giveaway
+		// this isn't the real site). Fall back to the same card shown when
+		// no destination is configured at all: title/image/description and
+		// a plain "Continue to site" link, nothing that hints at an error.
 		log.Printf("clone view: mirror %q: %v", dest, err)
 		h.render(w, "clone.html", map[string]any{
 			"Slug":        link.Slug,
@@ -559,7 +579,6 @@ func (h *Handler) ClonePageView(w http.ResponseWriter, r *http.Request) {
 			"Image":       link.Config.Image,
 			"Destination": dest,
 			"BaseURL":     h.Cfg.BaseURL,
-			"Error":       "Could not load a live copy of the target page right now.",
 		})
 	}
 }
