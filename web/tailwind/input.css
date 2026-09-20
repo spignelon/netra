@@ -234,6 +234,8 @@
   .event-modal-grid dd { @apply m-0 break-words; }
   .events-row-clickable { @apply cursor-pointer; }
   .events-row-clickable:hover { @apply bg-hover; }
+  .links-row-clickable { @apply cursor-pointer; }
+  .links-row-clickable:hover { @apply bg-hover; }
 
   .settings-form h4 { @apply mt-4 mb-1 text-sm; }
   .settings-status { @apply mb-3; }

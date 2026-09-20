@@ -110,10 +110,16 @@
       .catch(() => {});
   }
 
+  // Recent events are clickable (same detail popup as the Events page — see
+  // event-modal.js), so each rendered row needs the event's full data kept
+  // around by ID, not just the summary fields shown in the table cells.
+  const recentEventsById = new Map();
+  (typeof recentEvents !== "undefined" ? recentEvents : []).forEach((e) => recentEventsById.set(e.ID, e));
+
   function recentRowHTML(e) {
     const loc = [e.City, e.Country].filter(Boolean).join(", ");
     return (
-      "<tr>" +
+      "<tr data-id=\"" + e.ID + "\" class=\"events-row-clickable\" title=\"Click to view full event details\">" +
       "<td>" + esc(new Date(e.Timestamp).toLocaleString()) + "</td>" +
       "<td><a href=\"/admin/links/" + e.LinkID + "\">" + esc(e.LinkLabel || e.LinkSlug) + "</a></td>" +
       "<td><span class=\"badge\">" + esc(e.Type) + "</span></td>" +
@@ -131,18 +137,36 @@
         const events = (data.events || []).slice(0, 15);
         const wrap = document.getElementById("recentEventsWrap");
         const empty = document.getElementById("recentEventsEmpty");
+        const hint = document.getElementById("recentEventsHint");
         const body = document.getElementById("recentEventsBody");
         if (!wrap || !empty || !body) return;
         if (events.length === 0) {
           wrap.hidden = true;
           empty.hidden = false;
+          if (hint) hint.hidden = true;
           return;
         }
         wrap.hidden = false;
         empty.hidden = true;
+        if (hint) hint.hidden = false;
+        recentEventsById.clear();
+        events.forEach((e) => recentEventsById.set(e.ID, e));
         body.innerHTML = events.map(recentRowHTML).join("");
       })
       .catch(() => {});
+  }
+
+  const recentBody = document.getElementById("recentEventsBody");
+  if (recentBody) {
+    recentBody.addEventListener("click", (e) => {
+      if (e.target.closest("a")) return;
+      const row = e.target.closest("tr[data-id]");
+      if (!row) return;
+      const ev = recentEventsById.get(Number(row.dataset.id));
+      if (ev && window.Netra && window.Netra.showEventModal) {
+        window.Netra.showEventModal(ev, { showLink: true });
+      }
+    });
   }
 
   if (window.Netra && window.Netra.onAutoRefresh) {

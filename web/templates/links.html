@@ -97,6 +97,7 @@
       {{if not .Links}}
         <p class="muted">No links yet — create one above.</p>
       {{else}}
+      <p class="muted text-xs mb-2">Click a row to view its details, QR code, and event log.</p>
       <div class="table-wrap">
         <table>
           <thead>
@@ -106,9 +107,9 @@
               <th>Status</th><th>Created</th><th></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="linksBody">
             {{range .Links}}
-            <tr data-id="{{.ID}}">
+            <tr data-id="{{.ID}}" class="links-row-clickable" title="Click to view link details">
               <td class="select-cell"><input type="checkbox" name="ids" value="{{.ID}}" form="linksBulkForm" class="link-select"></td>
               <td><a href="/admin/links/{{.ID}}">{{linkName .}}</a></td>
               <td><span class="badge">{{typeBadge .Type}}</span></td>

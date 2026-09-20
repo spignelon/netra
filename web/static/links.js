@@ -74,6 +74,27 @@
   });
 })();
 
+// Row click navigates to that link's detail page — same destination as
+// clicking its label, just extended to the whole row (excluding the
+// checkbox, QR button, URL field, and the toggle/delete forms, which each
+// already do their own thing) so the user doesn't have to hit the small
+// label text specifically. Mirrors events.js's row-click-to-detail pattern.
+(function () {
+  const tbody = document.getElementById("linksBody");
+  if (!tbody) return;
+
+  tbody.addEventListener("click", (e) => {
+    if (e.target.closest(".select-cell") || e.target.closest(".qr-btn") ||
+        e.target.closest(".row-actions") || e.target.closest(".url-cell") ||
+        e.target.closest("a")) {
+      return;
+    }
+    const row = e.target.closest("tr[data-id]");
+    if (!row) return;
+    window.location.href = "/admin/links/" + row.dataset.id;
+  });
+})();
+
 // Auto-refresh: keeps each row's event count, last-activity time, and
 // active/expired status current without a page reload. Updates cells in
 // place rather than re-rendering rows, so in-progress checkbox selections
