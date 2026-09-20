@@ -119,7 +119,15 @@
   .topbar nav { @apply hidden md:flex gap-4 flex-1; }
   .topbar nav a { @apply text-muted no-underline font-medium px-1 py-1.5; }
   .topbar nav a.active, .topbar nav a:hover { @apply text-primary; }
-  .topbar-mobile-nav { @apply flex md:hidden flex-col gap-1 border-t border-border bg-card px-4 py-2; }
+  /* fixed (not static/normal-flow) so it stays pinned directly under the
+     sticky header regardless of scroll position — nav.js sets `top` to the
+     header's actual rendered height each time it opens. Without this, the
+     dropdown renders at its original document position (right after the
+     header's un-scrolled spot), which is off-screen above the viewport
+     once scrolled any real distance down the page. */
+  .topbar-mobile-nav {
+    @apply fixed md:hidden left-0 right-0 z-50 flex flex-col gap-1 border-t border-border bg-card px-4 py-2 max-h-[70vh] overflow-y-auto;
+  }
   .topbar-mobile-nav a { @apply text-muted no-underline font-medium px-1 py-2; }
   .topbar-mobile-nav a.active { @apply text-primary; }
   .topbar-mobile-nav[hidden] { @apply hidden; }
