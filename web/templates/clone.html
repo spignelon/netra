@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>{{.Title}}</title>
+  <!-- A visitor to this page is the actual capture target, not the admin —
+       never let it inherit /favicon.ico's Netra-or-Nextcloud icon via the
+       browser's automatic fallback; explicitly declare no icon instead. -->
+  <link rel="icon" href="data:,">
   {{if .Description}}<meta name="description" content="{{.Description}}">{{end}}
 
   <!-- Open Graph tags so this link unfurls with a rich preview in chat apps -->

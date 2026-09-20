@@ -191,6 +191,15 @@ func internalError(w http.ResponseWriter, context string, err error) {
 	http.Error(w, "internal error", http.StatusInternalServerError)
 }
 
+// concealedTemplates is every page a signed-out visitor can reach — the
+// only pages where the conceal-mode setting should ever change what's
+// rendered. /setup deliberately isn't here even though it's pre-auth: it
+// always shows real branding since an account doesn't exist to log into
+// yet, so there's no login-page disguise to apply.
+var concealedTemplates = map[string]bool{
+	"login.html": true,
+}
+
 // Concealed reports whether conceal mode is currently on.
 func (h *Handler) Concealed() bool { return h.concealed.Load() }
 
@@ -199,14 +208,31 @@ func (h *Handler) Concealed() bool { return h.concealed.Load() }
 func (h *Handler) SetConcealed(v bool) { h.concealed.Store(v) }
 
 // render executes a named template with a base layout. Every page gets a
-// "Concealed" data key automatically so templates can switch their
+// "Concealed" data key automatically (the true, current setting value —
+// used by settings.html's own status pill/toggle, where the admin needs
+// to see and control the real state regardless of which page they're on)
+// and a "Disguised" key (whether *this specific page's* chrome should
+// actually show the Nextcloud disguise) so templates can switch their
 // title/favicon/branding without every call site remembering to pass it.
+//
+// Conceal mode's whole purpose is to protect a non-admin visitor who only
+// has the instance URL or a shared/shortened/cloned link from learning
+// Netra is what's running here — it was never meant to also disguise the
+// authenticated admin's own dashboard, since by definition nobody who's
+// already logged in needs protecting from that fact. concealedTemplates
+// is the (deliberately short) list of pages a signed-out visitor can
+// actually reach — everything else gets Disguised=false unconditionally,
+// so a new admin page added later is concealed-safe by default instead of
+// needing to remember to opt out.
 func (h *Handler) render(w http.ResponseWriter, name string, data map[string]any) {
 	if data == nil {
 		data = map[string]any{}
 	}
 	if _, ok := data["Concealed"]; !ok {
 		data["Concealed"] = h.Concealed()
+	}
+	if _, ok := data["Disguised"]; !ok {
+		data["Disguised"] = concealedTemplates[name] && h.Concealed()
 	}
 	if _, ok := data["AutoRefreshSeconds"]; !ok {
 		data["AutoRefreshSeconds"] = h.AutoRefreshSeconds()

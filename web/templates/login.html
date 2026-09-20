@@ -2,9 +2,9 @@
 <!doctype html>
 <html lang="en"{{if eq .Theme "light"}} data-theme="light"{{else if eq .Theme "dark"}} data-theme="dark"{{end}}>
 <head>
-  <title>{{if .Concealed}}Log in - Nextcloud{{else}}Netra — Login{{end}}</title>
+  <title>{{if .Disguised}}Log in - Nextcloud{{else}}Netra — Login{{end}}</title>
   {{template "head" .}}
-  {{if .Concealed}}
+  {{if .Disguised}}
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -86,7 +86,7 @@
   </style>
   {{end}}
 </head>
-{{if .Concealed}}
+{{if .Disguised}}
 <body id="body-login">
   <div class="logo"><img src="/core/img/logo/logo.svg" alt="Nextcloud"></div>
   <div class="login-box">

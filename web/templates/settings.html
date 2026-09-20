@@ -2,7 +2,7 @@
 <!doctype html>
 <html lang="en"{{if eq .Theme "light"}} data-theme="light"{{else if eq .Theme "dark"}} data-theme="dark"{{end}}>
 <head>
-  <title>{{if .Concealed}}Personal settings - Nextcloud{{else}}Settings — Netra{{end}}</title>
+  <title>{{if .Disguised}}Personal settings - Nextcloud{{else}}Settings — Netra{{end}}</title>
   {{template "head" .}}
 </head>
 <body>
@@ -146,11 +146,12 @@
     <section class="card">
       <h3>Conceal mode</h3>
       <p class="muted">
-        When enabled, the login page, dashboard title, and site favicon disguise this instance
-        as a self-hosted Nextcloud install. A casual visitor, port scanner, or screenshot of
-        your browser tab won't see "Netra" anywhere — the login form still only authenticates
-        your one real admin account exactly as before, and nothing extra is captured about what
-        anyone else types into it.
+        When enabled, the login page disguises this instance as a self-hosted Nextcloud install
+        — its title, favicon, and look. A non-admin visitor who only has the instance URL (or a
+        shared/shortened/cloned link) and hasn't logged in won't see "Netra" anywhere. Once
+        you're actually logged in, the dashboard always shows real Netra branding regardless of
+        this setting — concealment protects the login gate from someone who doesn't have admin
+        access, not the admin's own working session, since you already know what this is.
       </p>
       <p class="notice">
         This is cosmetic disguise only — page title, favicon, and the login screen's look. It

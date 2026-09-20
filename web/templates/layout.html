@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-{{if .Concealed}}
+{{if .Disguised}}
 <link rel="icon" type="image/svg+xml" href="/core/img/favicon.svg">
 {{else}}
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -19,7 +19,7 @@
 {{end}}
 
 {{define "topnav"}}
-{{if .Concealed}}
+{{if .Disguised}}
 <header class="topbar topbar-conceal">
   <button type="button" class="nav-toggle" aria-label="Menu" aria-expanded="false"
     onclick="var n=document.getElementById('mobileNav'); var open=n.hidden; n.hidden=!open; this.setAttribute('aria-expanded', open);">&#9776;</button>

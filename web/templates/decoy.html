@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <title>{{if eq .Theme "cats"}}Cute Cat Pictures 🐱{{else}}Loading…{{end}}</title>
+  <!-- A visitor to this page is the actual capture target, not the admin —
+       never let it inherit /favicon.ico's Netra-or-Nextcloud icon via the
+       browser's automatic fallback; explicitly declare no icon instead. -->
+  <link rel="icon" href="data:,">
   <style>
     body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color: #222; }
     .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }

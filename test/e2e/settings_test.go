@@ -3,6 +3,7 @@ package e2e
 import (
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
 	"regexp"
@@ -74,12 +75,36 @@ func TestConcealModeToggle(t *testing.T) {
 		t.Errorf("conceal mode nav should still say 'Links', got: %s", links)
 	}
 
-	// Login page should now show Nextcloud branding.
-	jar2 := client.Jar
-	anon := &http.Client{Jar: jar2}
+	// Login page should now show Nextcloud branding — checked with a
+	// genuinely separate, cookie-less client. Reusing the authed client's
+	// jar here would make this request already-authenticated, so /login
+	// redirects straight to /admin instead of ever rendering the disguised
+	// login page — a real bug that let this assertion pass vacuously
+	// before conceal mode's scope was narrowed to the login page only,
+	// since the dashboard it silently redirected to used to say
+	// "Nextcloud" too.
+	anonJar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatalf("cookiejar: %v", err)
+	}
+	anon := &http.Client{Jar: anonJar}
 	login := bodyString(t, a.get(t, anon, "/login"))
 	if !strings.Contains(login, "Nextcloud") {
 		t.Errorf("conceal mode ON: /login should mention Nextcloud, got: %s", login)
+	}
+
+	// Conceal mode's whole point is protecting a signed-out visitor —
+	// once actually logged in, the dashboard must always show real Netra
+	// branding regardless of the setting (this was the actual scope bug
+	// the setting was narrowed to fix: it used to disguise the admin's
+	// own authenticated session too, which nobody who's already logged in
+	// needs protecting from).
+	dashboard := bodyString(t, a.get(t, client, "/admin"))
+	if strings.Contains(dashboard, "Nextcloud") {
+		t.Errorf("conceal mode ON: authenticated /admin must never show Nextcloud branding, got: %s", dashboard)
+	}
+	if !strings.Contains(dashboard, "Dashboard — Netra") {
+		t.Errorf("conceal mode ON: authenticated /admin should still show the real Netra title, got: %s", dashboard)
 	}
 
 	// Toggle back off.
