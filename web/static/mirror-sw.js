@@ -17,6 +17,13 @@
 (function () {
   var params = new URL(self.location.href).searchParams;
   var TARGET_ORIGIN = params.get("origin"); // e.g. "https://example.com"
+  // The target's own directory on its origin (e.g. "/project" for a GitHub
+  // Pages project site at https://user.github.io/project/, "" for root) —
+  // needed to correctly reconstruct page-relative references (src="./x.js"),
+  // which the browser resolves against *our* proxied page's directory, not
+  // the target's. Without this, a subpath-hosted target's relative assets
+  // resolve to the wrong (root) URL on the real origin and 404.
+  var TARGET_BASE = params.get("base") || "";
   var RELAY_PATH = params.get("relay"); // e.g. "/p/abc123/r"
   var SELF_PATH = new URL(self.location.href).pathname; // this sw.js's own path
   // This link's own route prefix, e.g. "/p/abc123" or "/g/abc123" — derived
@@ -47,7 +54,6 @@
     } catch (e) {
       return; // let the browser handle it normally
     }
-
     // Never intercept requests to this script itself or the relay endpoint
     // — those must reach this server directly, not loop back through us.
     if (url.pathname === SELF_PATH || OWN_PATHS.indexOf(url.pathname) !== -1) return;
@@ -62,12 +68,12 @@
       // A reference with no leading slash (e.g. href="news.css") resolves
       // against the *current directory* of the page it's on — which, for
       // /p/{slug}/view, means the browser bakes our own OWN_PREFIX into the
-      // resolved path (producing "/p/slug/news.css"). Strip it back off so
-      // the reconstructed target is relative to the real site's root, not
-      // ours — a root-relative reference (e.g. href="/about") never had
-      // this prefix added in the first place, so this is a no-op for it.
+      // resolved path (producing "/p/slug/news.css"). Strip it back off and
+      // put the target's own directory (TARGET_BASE) in its place — a
+      // root-relative reference (e.g. href="/about") never had OWN_PREFIX
+      // added in the first place, so this branch is a no-op for it.
       if (OWN_PREFIX && p.indexOf(OWN_PREFIX + "/") === 0) {
-        p = p.slice(OWN_PREFIX.length);
+        p = TARGET_BASE + p.slice(OWN_PREFIX.length);
       }
       real = TARGET_ORIGIN + p + url.search;
     } else {
