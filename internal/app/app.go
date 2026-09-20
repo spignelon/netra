@@ -79,6 +79,7 @@ func NewMux(h *handlers.Handler, am *auth.Manager) http.Handler {
 	mux.HandleFunc("GET /admin/events.csv", am.RequireAuth(h.EventsCSV))
 	mux.HandleFunc("GET /admin/settings", am.RequireAuth(h.SettingsPage))
 	mux.HandleFunc("POST /admin/settings/conceal", am.RequireAuth(h.ToggleConceal))
+	mux.HandleFunc("POST /admin/settings/conceal-style", am.RequireAuth(h.SaveConcealStyle))
 	mux.HandleFunc("POST /admin/settings/webhook", am.RequireAuth(h.SaveWebhook))
 	mux.HandleFunc("POST /admin/settings/webhook/test", am.RequireAuth(h.TestWebhook))
 	mux.HandleFunc("POST /admin/settings/geoip", am.RequireAuth(h.ToggleGeoIP))

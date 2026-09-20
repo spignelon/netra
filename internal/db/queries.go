@@ -88,7 +88,15 @@ const (
 	settingGPSAlertPriority = "gps_alert_priority"
 	settingAutoRefreshSecs  = "auto_refresh_seconds"
 	settingThemePreference  = "theme_preference"
+	settingConcealStyle     = "conceal_style"
 )
+
+// DefaultConcealStyle is used until changed from Settings. "nextcloud" is
+// the original disguise (a replica Nextcloud login page); "basic_auth"
+// instead challenges with the browser's own native HTTP Basic Auth prompt
+// — no login page markup at all, so there's nothing to fingerprint as any
+// particular software.
+const DefaultConcealStyle = "nextcloud"
 
 // DefaultThemePreference is used until changed from Settings; "auto" follows
 // the browser's prefers-color-scheme.
@@ -155,6 +163,33 @@ func (db *DB) SetThemePreference(v string) error {
 		v = DefaultThemePreference
 	}
 	return db.SetSetting(settingThemePreference, v)
+}
+
+// ConcealStyle returns "nextcloud" or "basic_auth" — which disguise conceal
+// mode uses at the login gate, defaulting to DefaultConcealStyle until
+// changed from Settings. Only meaningful while conceal mode itself is on.
+func (db *DB) ConcealStyle() (string, error) {
+	v, ok, err := db.GetSetting(settingConcealStyle)
+	if err != nil || !ok {
+		return DefaultConcealStyle, err
+	}
+	switch v {
+	case "nextcloud", "basic_auth":
+		return v, nil
+	default:
+		return DefaultConcealStyle, nil
+	}
+}
+
+// SetConcealStyle persists the conceal-mode disguise style, falling back to
+// DefaultConcealStyle for anything other than "nextcloud"/"basic_auth".
+func (db *DB) SetConcealStyle(v string) error {
+	switch v {
+	case "nextcloud", "basic_auth":
+	default:
+		v = DefaultConcealStyle
+	}
+	return db.SetSetting(settingConcealStyle, v)
 }
 
 // GeoIPEnabled reports whether IP geolocation lookups are enabled. Defaults

@@ -25,7 +25,7 @@ func TestTemplatesParse(t *testing.T) {
 		t.Fatalf("db open: %v", err)
 	}
 	defer database.Close()
-	am := &auth.Manager{DB: database, CookieSecure: false}
+	am := auth.NewManager(database, false, false)
 	geo := geoip.New()
 	if _, err := New(database, cfg, am, geo); err != nil {
 		t.Fatalf("template parse error: %v", err)

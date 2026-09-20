@@ -30,7 +30,7 @@ func main() {
 	defer database.Close()
 	_ = database.PurgeExpiredSessions()
 
-	am := &auth.Manager{DB: database, CookieSecure: cfg.CookieSecure}
+	am := auth.NewManager(database, cfg.CookieSecure, cfg.TrustProxy)
 	geo := geoip.New()
 
 	h, err := handlers.New(database, cfg, am, geo)

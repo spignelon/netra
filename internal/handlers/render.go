@@ -48,13 +48,16 @@ type Handler struct {
 	// Kept in sync via SetTheme. Holds a string, hence atomic.Value not Bool.
 	theme atomic.Value
 
+	// concealStyle caches "nextcloud"/"basic_auth" — which disguise conceal
+	// mode uses at the login gate. Kept in sync via SetConcealStyle, and
+	// mirrored onto Auth.SetBasicAuthStyle at the same time so RequireAuth
+	// (which can't import this package) sees the same value.
+	concealStyle atomic.Value
+
 	// notifyMu guards notifyCfg, refreshed whenever the webhook/GPS-alert
 	// settings are saved from the admin Settings page.
 	notifyMu  sync.RWMutex
 	notifyCfg notify.Config
-
-	// loginLimiter rate-limits failed /login attempts per client IP.
-	loginLimiter *loginThrottle
 }
 
 // New constructs a Handler and parses all templates.
@@ -102,11 +105,19 @@ func New(database *db.DB, cfg *config.Config, am *auth.Manager, geo *geoip.Clien
 	if err != nil {
 		return nil, err
 	}
-	h := &Handler{DB: database, Cfg: cfg, Auth: am, Geo: geo, tmpl: t, loginLimiter: newLoginThrottle()}
+	h := &Handler{DB: database, Cfg: cfg, Auth: am, Geo: geo, tmpl: t}
 	if enabled, err := database.ConcealEnabled(); err != nil {
 		log.Printf("WARNING: could not load conceal-mode setting, defaulting to off: %v", err)
 	} else {
 		h.concealed.Store(enabled)
+		am.SetConcealed(enabled)
+	}
+	if style, err := database.ConcealStyle(); err != nil {
+		log.Printf("WARNING: could not load conceal-style setting, defaulting to %q: %v", db.DefaultConcealStyle, err)
+		h.concealStyle.Store(db.DefaultConcealStyle)
+	} else {
+		h.concealStyle.Store(style)
+		am.SetBasicAuthStyle(style == "basic_auth")
 	}
 	if enabled, err := database.GeoIPEnabled(); err != nil {
 		log.Printf("WARNING: could not load geoip-enabled setting, defaulting to on: %v", err)
@@ -204,8 +215,19 @@ var concealedTemplates = map[string]bool{
 func (h *Handler) Concealed() bool { return h.concealed.Load() }
 
 // SetConcealed updates the in-memory conceal-mode cache. Call this right
-// after persisting the new value with DB.SetConcealEnabled.
+// after persisting the new value with DB.SetConcealEnabled, and call
+// h.Auth.SetConcealed with the same value right alongside it — RequireAuth
+// needs its own copy since the auth package can't import this one.
 func (h *Handler) SetConcealed(v bool) { h.concealed.Store(v) }
+
+// ConcealStyle returns "nextcloud" or "basic_auth".
+func (h *Handler) ConcealStyle() string { return h.concealStyle.Load().(string) }
+
+// SetConcealStyle updates the in-memory conceal-style cache. Call this
+// right after persisting the new value with DB.SetConcealStyle, and call
+// h.Auth.SetBasicAuthStyle(v == "basic_auth") right alongside it, same
+// reasoning as SetConcealed.
+func (h *Handler) SetConcealStyle(v string) { h.concealStyle.Store(v) }
 
 // render executes a named template with a base layout. Every page gets a
 // "Concealed" data key automatically (the true, current setting value —
