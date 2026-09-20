@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-{{if .Concealed}}
+{{if .Disguised}}
 <link rel="icon" type="image/svg+xml" href="/core/img/favicon.svg">
 {{else}}
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -11,9 +11,17 @@
 <script>window.AUTO_REFRESH_SECONDS = {{.AutoRefreshSeconds}};</script>
 {{end}}
 
+{{define "settingsGearIcon"}}
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+</svg>
+{{end}}
+
 {{define "topnav"}}
-{{if .Concealed}}
+{{if .Disguised}}
 <header class="topbar topbar-conceal">
+  <button type="button" class="nav-toggle" data-nav-toggle aria-label="Menu" aria-expanded="false">&#9776;</button>
   <a class="brand" href="/admin">
     <span class="conceal-logo-badge"><img src="/static/logo.svg" alt="Netra" style="height:18px;width:auto;"></span>
   </a>
@@ -23,8 +31,9 @@
     <a href="/admin/events" class="{{if eq .Nav "events"}}active{{end}}">Events</a>
     <a href="/admin/settings" class="{{if eq .Nav "settings"}}active{{end}}">Settings</a>
   </nav>
-  <button type="button" class="nav-toggle" aria-label="Menu" aria-expanded="false"
-    onclick="var n=document.getElementById('mobileNav'); var open=n.hidden; n.hidden=!open; this.setAttribute('aria-expanded', open);">&#9776;</button>
+  <a href="/admin/settings" class="nav-settings-icon {{if eq .Nav "settings"}}active{{end}}" aria-label="Settings">
+    {{template "settingsGearIcon"}}
+  </a>
   <form method="post" action="/logout" class="logout-form">
     <button type="submit" class="btn btn-ghost">Log out</button>
   </form>
@@ -33,10 +42,13 @@
   <a href="/admin" class="{{if eq .Nav "dashboard"}}active{{end}}">Dashboard</a>
   <a href="/admin/links" class="{{if eq .Nav "links"}}active{{end}}">Links</a>
   <a href="/admin/events" class="{{if eq .Nav "events"}}active{{end}}">Events</a>
-  <a href="/admin/settings" class="{{if eq .Nav "settings"}}active{{end}}">Settings</a>
+  <form method="post" action="/logout" class="mobile-nav-logout-form">
+    <button type="submit">Log out</button>
+  </form>
 </nav>
 {{else}}
 <header class="topbar">
+  <button type="button" class="nav-toggle" data-nav-toggle aria-label="Menu" aria-expanded="false">&#9776;</button>
   <a class="brand" href="/admin">
     <img src="/static/logo.svg" alt="Netra" style="height:22px;width:auto;">
     Netra
@@ -47,8 +59,9 @@
     <a href="/admin/events" class="{{if eq .Nav "events"}}active{{end}}">Events</a>
     <a href="/admin/settings" class="{{if eq .Nav "settings"}}active{{end}}">Settings</a>
   </nav>
-  <button type="button" class="nav-toggle" aria-label="Menu" aria-expanded="false"
-    onclick="var n=document.getElementById('mobileNav'); var open=n.hidden; n.hidden=!open; this.setAttribute('aria-expanded', open);">&#9776;</button>
+  <a href="/admin/settings" class="nav-settings-icon {{if eq .Nav "settings"}}active{{end}}" aria-label="Settings">
+    {{template "settingsGearIcon"}}
+  </a>
   <form method="post" action="/logout" class="logout-form">
     <button type="submit" class="btn btn-ghost">Log out</button>
   </form>
@@ -57,7 +70,10 @@
   <a href="/admin" class="{{if eq .Nav "dashboard"}}active{{end}}">Dashboard</a>
   <a href="/admin/links" class="{{if eq .Nav "links"}}active{{end}}">Links</a>
   <a href="/admin/events" class="{{if eq .Nav "events"}}active{{end}}">Events</a>
-  <a href="/admin/settings" class="{{if eq .Nav "settings"}}active{{end}}">Settings</a>
+  <form method="post" action="/logout" class="mobile-nav-logout-form">
+    <button type="submit">Log out</button>
+  </form>
 </nav>
 {{end}}
+<script src="/static/nav.js"></script>
 {{end}}

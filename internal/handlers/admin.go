@@ -99,13 +99,23 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}
+	// Basic Auth conceal style has no login-page markup at all — /login
+	// itself must not become a way to reach real (or Nextcloud-disguised)
+	// branding pre-auth in that mode, so route it through the exact same
+	// challenge RequireAuth uses instead of rendering login.html.
+	if h.Concealed() && h.ConcealStyle() == "basic_auth" {
+		h.Auth.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		})(w, r)
+		return
+	}
 	if r.Method == http.MethodGet {
 		h.render(w, "login.html", map[string]any{})
 		return
 	}
 
 	ip := h.clientIP(r)
-	if ok, retryAfter := h.loginLimiter.allow(ip); !ok {
+	if ok, retryAfter := h.Auth.AllowLogin(ip); !ok {
 		h.render(w, "login.html", map[string]any{
 			"Error": fmt.Sprintf("Too many failed attempts. Try again in %d seconds.", int(retryAfter.Seconds())+1),
 		})
@@ -120,11 +130,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	username := strings.TrimSpace(r.FormValue("username"))
 	pw := r.FormValue("password")
 	if username != admin.Username || !auth.CheckPassword(admin.PasswordHash, pw) {
-		h.loginLimiter.recordFailure(ip)
+		h.Auth.RecordLoginFailure(ip)
 		h.render(w, "login.html", map[string]any{"Error": "Invalid credentials."})
 		return
 	}
-	h.loginLimiter.recordSuccess(ip)
+	h.Auth.RecordLoginSuccess(ip)
 	if err := h.Auth.Login(w); err != nil {
 		internalError(w, "login: create session", err)
 		return
@@ -152,6 +162,7 @@ func (h *Handler) SettingsPage(w http.ResponseWriter, r *http.Request) {
 		"CSRF":         auth.CSRFToken(r),
 		"Webhook":      webhook,
 		"GeoIPEnabled": h.GeoIPEnabled(),
+		"ConcealStyle": h.ConcealStyle(),
 		"Notice":       r.URL.Query().Get("notice"),
 		"Error":        r.URL.Query().Get("err"),
 	})
@@ -243,7 +254,33 @@ func (h *Handler) ToggleConceal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.SetConcealed(newState)
+	h.Auth.SetConcealed(newState)
 	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
+}
+
+// SaveConcealStyle handles POST /admin/settings/conceal-style: which
+// disguise conceal mode uses at the login gate — the Nextcloud replica
+// login page, or a native HTTP Basic Auth prompt with no page markup at
+// all. Only meaningful while conceal mode itself is on, but saved
+// independently so the choice is remembered across toggling conceal mode
+// off and back on.
+func (h *Handler) SaveConcealStyle(w http.ResponseWriter, r *http.Request) {
+	if !auth.VerifyCSRF(r) {
+		http.Error(w, "invalid csrf token", http.StatusForbidden)
+		return
+	}
+	if err := h.DB.SetConcealStyle(r.FormValue("conceal_style")); err != nil {
+		internalError(w, "settings: save conceal style", err)
+		return
+	}
+	saved, err := h.DB.ConcealStyle()
+	if err != nil {
+		internalError(w, "settings: reload conceal style", err)
+		return
+	}
+	h.SetConcealStyle(saved)
+	h.Auth.SetBasicAuthStyle(saved == "basic_auth")
+	http.Redirect(w, r, "/admin/settings?notice=Disguise+style+saved", http.StatusSeeOther)
 }
 
 // SaveAutoRefresh handles POST /admin/settings/refresh: persists how often

@@ -42,8 +42,12 @@ func newTestApp(t *testing.T) *testApp {
 
 	dir := t.TempDir()
 	cfg := &config.Config{
-		Port:         "0",
-		BaseURL:      "http://netra.test",
+		Port: "0",
+		// Deliberately doesn't contain "netra" — a real deployment's BASE_URL
+		// is the admin's own domain, which would never coincidentally spell
+		// out the tool's name, and TestPublicPagesNeverMentionNetra checks
+		// og:url (built from this value) along with everything else.
+		BaseURL:      "http://admin.test",
 		DataDir:      dir,
 		SessionKey:   randomKey(t),
 		TrustProxy:   false,
@@ -59,7 +63,7 @@ func newTestApp(t *testing.T) *testApp {
 	}
 	t.Cleanup(func() { _ = database.Close() })
 
-	am := &auth.Manager{DB: database, CookieSecure: cfg.CookieSecure}
+	am := auth.NewManager(database, cfg.CookieSecure, cfg.TrustProxy)
 	geo := geoip.New()
 
 	h, err := handlers.New(database, cfg, am, geo)

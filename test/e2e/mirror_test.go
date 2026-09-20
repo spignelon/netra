@@ -248,7 +248,13 @@ func TestMirrorSSRFGuardBlocksPrivateTargets(t *testing.T) {
 			if strings.Contains(body, "TOP-SECRET-INTERNAL-CONTENT") {
 				t.Fatalf("SSRF guard did not block %q — the private target's real content was relayed back", dest)
 			}
-			if !strings.Contains(body, "Could not load") {
+			// The fallback card (clone.html) deliberately shows no error text
+			// to the visitor — see ClonePageView's comment on why a blocked/
+			// failed fetch must never look different from an intentionally
+			// bare link. "Continue to site" is the one thing it always
+			// renders when a destination is set, so it's what confirms the
+			// fallback card rendered instead of, say, the app crashing.
+			if !strings.Contains(body, "Continue to site") {
 				t.Fatalf("expected the blocked-fetch fallback card for %q, got: %s", dest, body)
 			}
 		})
@@ -258,4 +264,47 @@ func TestMirrorSSRFGuardBlocksPrivateTargets(t *testing.T) {
 func sanitizeSlug(s string) string {
 	r := strings.NewReplacer("http://", "", "https://", "", "/", "-", ":", "-", ".", "-")
 	return r.Replace(s)
+}
+
+// TestPublicPagesNeverMentionNetra is the regression test for a real leak:
+// every page a link's actual visitor (not the admin) can reach — the GPS
+// decoy theme, the Clone/Preview live-proxy loader and its own service
+// worker script, and the Clone/Preview fallback card — must never contain
+// the word "Netra" anywhere in the response body, including in HTML/JS
+// comments. A comment that isn't visible on the rendered page is still
+// fully visible via view-source, and one slipped in once already (added
+// alongside an otherwise-unrelated favicon fix, caught only by manual
+// review) — this test exists so that class of mistake fails CI instead of
+// waiting to be noticed by whoever the tool is used against.
+func TestPublicPagesNeverMentionNetra(t *testing.T) {
+	target := newTargetServer(t, `<html><body>real target content</body></html>`)
+	defer target.Close()
+
+	a := newTestApp(t)
+	client := a.authedClient(t)
+
+	a.createLink(t, client, url.Values{"type": {"gps"}, "slug": {"leak-gps"}, "theme": {"cats"}}).Body.Close()
+	a.createLink(t, client, url.Values{"type": {"clone"}, "slug": {"leak-clone"}, "destination": {target.URL}}).Body.Close()
+	// A destination that can never be reached forces the clone.html
+	// fallback card instead of the live-proxied real page.
+	a.createLink(t, client, url.Values{"type": {"clone"}, "slug": {"leak-clone-fail"}, "destination": {"http://127.0.0.1:1/unreachable"}}).Body.Close()
+
+	anon := &http.Client{Jar: nil}
+	checks := []struct {
+		name string
+		url  string
+	}{
+		{"GPS decoy page", "/g/leak-gps"},
+		{"Clone/Preview loader (mirror_loader.html)", "/p/leak-clone"},
+		{"Clone/Preview service worker script", "/p/leak-clone/sw.js?origin=" + url.QueryEscape(target.URL) + "&relay=" + url.QueryEscape("/p/leak-clone/r")},
+		{"Clone/Preview fallback card (live fetch failed)", "/p/leak-clone-fail/view?eid=1&direct=1"},
+	}
+	for _, c := range checks {
+		t.Run(c.name, func(t *testing.T) {
+			body := bodyString(t, a.get(t, anon, c.url))
+			if strings.Contains(strings.ToLower(body), "netra") {
+				t.Errorf("%s must never mention Netra (visible via view-source to the actual link visitor), got: %s", c.name, body)
+			}
+		})
+	}
 }

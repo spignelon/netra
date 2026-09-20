@@ -2,7 +2,7 @@
 <!doctype html>
 <html lang="en"{{if eq .Theme "light"}} data-theme="light"{{else if eq .Theme "dark"}} data-theme="dark"{{end}}>
 <head>
-  <title>{{if .Concealed}}Dashboard - Nextcloud{{else}}Dashboard — Netra{{end}}</title>
+  <title>{{if .Disguised}}Dashboard - Nextcloud{{else}}Dashboard — Netra{{end}}</title>
   {{template "head" .}}
 </head>
 <body>
@@ -61,6 +61,7 @@
         <a href="/admin/events" class="btn btn-ghost btn-sm">View all events &rarr;</a>
       </div>
       <p class="muted" id="recentEventsEmpty" {{if .Recent}}hidden{{end}}>No events captured yet. Create a link and share it to start logging.</p>
+      <p class="muted text-xs mb-2" id="recentEventsHint" {{if not .Recent}}hidden{{end}}>Click a row to see everything captured for that event.</p>
       <div class="table-wrap" id="recentEventsWrap" {{if not .Recent}}hidden{{end}}>
         <table>
           <thead>
@@ -68,7 +69,7 @@
           </thead>
           <tbody id="recentEventsBody">
             {{range .Recent}}
-            <tr>
+            <tr data-id="{{.ID}}" class="events-row-clickable" title="Click to view full event details">
               <td>{{fmtTime .Timestamp}}</td>
               <td><a href="/admin/links/{{.LinkID}}">{{if .LinkLabel}}{{.LinkLabel}}{{else}}{{.LinkSlug}}{{end}}</a></td>
               <td><span class="badge">{{.Type}}</span></td>
@@ -86,8 +87,10 @@
   <script src="/static/chart.umd.min.js"></script>
   <script>
     const stats = {{toJSON .Stats}};
+    const recentEvents = {{toJSON .Recent}};
   </script>
   <script src="/static/autorefresh.js"></script>
+  <script src="/static/event-modal.js"></script>
   <script src="/static/dashboard.js"></script>
 </body>
 </html>

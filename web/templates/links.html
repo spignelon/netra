@@ -2,7 +2,7 @@
 <!doctype html>
 <html lang="en"{{if eq .Theme "light"}} data-theme="light"{{else if eq .Theme "dark"}} data-theme="dark"{{end}}>
 <head>
-  <title>{{if .Concealed}}Files - Nextcloud{{else}}Links — Netra{{end}}</title>
+  <title>{{if .Disguised}}Files - Nextcloud{{else}}Links — Netra{{end}}</title>
   {{template "head" .}}
 </head>
 <body>
@@ -97,6 +97,7 @@
       {{if not .Links}}
         <p class="muted">No links yet — create one above.</p>
       {{else}}
+      <p class="muted text-xs mb-2">Click a row to view its details, QR code, and event log.</p>
       <div class="table-wrap">
         <table>
           <thead>
@@ -106,14 +107,14 @@
               <th>Status</th><th>Created</th><th></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="linksBody">
             {{range .Links}}
-            <tr data-id="{{.ID}}">
+            <tr data-id="{{.ID}}" class="links-row-clickable" title="Click to view link details">
               <td class="select-cell"><input type="checkbox" name="ids" value="{{.ID}}" form="linksBulkForm" class="link-select"></td>
               <td><a href="/admin/links/{{.ID}}">{{linkName .}}</a></td>
               <td><span class="badge">{{typeBadge .Type}}</span></td>
               <td class="mono url-cell">
-                <input type="text" readonly value="{{shareURL $.BaseURL .}}" onclick="this.select()">
+                <input type="text" readonly value="{{shareURL $.BaseURL .}}" data-select-on-click>
               </td>
               <td>
                 <button type="button" class="btn btn-ghost btn-sm qr-btn" title="Show QR code"

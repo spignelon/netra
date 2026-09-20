@@ -2,7 +2,7 @@
 <!doctype html>
 <html lang="en"{{if eq .Theme "light"}} data-theme="light"{{else if eq .Theme "dark"}} data-theme="dark"{{end}}>
 <head>
-  <title>{{if .Concealed}}Files - Nextcloud{{else}}{{linkName .Link}} — Netra{{end}}</title>
+  <title>{{if .Disguised}}Files - Nextcloud{{else}}{{linkName .Link}} — Netra{{end}}</title>
   {{template "head" .}}
   <link rel="stylesheet" href="/static/leaflet.css">
 </head>
@@ -33,7 +33,7 @@
     <section class="card">
       <label>Capture URL</label>
       <div class="share-url-row">
-        <input type="text" readonly value="{{.ShareURL}}" onclick="this.select()" class="mono full-width">
+        <input type="text" readonly value="{{.ShareURL}}" data-select-on-click class="mono full-width">
         <button type="button" class="btn btn-ghost qr-btn" title="Show QR code"
                 data-qr-url="/admin/links/{{.Link.ID}}/qr.png" data-qr-name="{{linkName .Link}}">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
@@ -58,7 +58,7 @@
     {{if .Points}}
     <section class="card">
       <h3>Map</h3>
-      <div id="map" class="h-[360px]"></div>
+      <div id="map" class="h-[360px] isolate"></div>
     </section>
     {{end}}
 
@@ -106,6 +106,7 @@
   </script>
   <script src="/static/link_map.js"></script>
   <script src="/static/autorefresh.js"></script>
+  <script src="/static/event-modal.js"></script>
   <script src="/static/events.js"></script>
   <script src="/static/links.js"></script>
   <script>

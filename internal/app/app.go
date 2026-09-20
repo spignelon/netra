@@ -20,9 +20,21 @@ import (
 func NewMux(h *handlers.Handler, am *auth.Manager) http.Handler {
 	mux := http.NewServeMux()
 
-	// Static assets (embedded).
+	// Static assets (embedded). No-cache rather than a long max-age: the
+	// embed.FS backing these has no real mtime, so http.FileServer never
+	// sends Last-Modified/ETag either — with zero cache headers at all,
+	// browsers fall back to their own heuristics and can keep serving a
+	// stale JS/CSS file for a while after a redeploy (confirmed: a fixed
+	// bug appeared to still be broken purely from a cached old events.js).
+	// no-cache forces revalidation before reuse; since there's no
+	// validator to revalidate against, that's effectively "always fetch
+	// the current version" without giving up caching entirely.
 	staticFS, _ := fs.Sub(web.Static, "static")
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+	staticHandler := http.StripPrefix("/static/", http.FileServer(http.FS(staticFS)))
+	mux.Handle("GET /static/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		staticHandler.ServeHTTP(w, r)
+	}))
 
 	// Public capture surfaces.
 	mux.HandleFunc("GET /s/{slug}", h.Redirect)
@@ -67,6 +79,7 @@ func NewMux(h *handlers.Handler, am *auth.Manager) http.Handler {
 	mux.HandleFunc("GET /admin/events.csv", am.RequireAuth(h.EventsCSV))
 	mux.HandleFunc("GET /admin/settings", am.RequireAuth(h.SettingsPage))
 	mux.HandleFunc("POST /admin/settings/conceal", am.RequireAuth(h.ToggleConceal))
+	mux.HandleFunc("POST /admin/settings/conceal-style", am.RequireAuth(h.SaveConcealStyle))
 	mux.HandleFunc("POST /admin/settings/webhook", am.RequireAuth(h.SaveWebhook))
 	mux.HandleFunc("POST /admin/settings/webhook/test", am.RequireAuth(h.TestWebhook))
 	mux.HandleFunc("POST /admin/settings/geoip", am.RequireAuth(h.ToggleGeoIP))

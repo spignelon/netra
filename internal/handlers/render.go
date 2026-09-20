@@ -48,13 +48,16 @@ type Handler struct {
 	// Kept in sync via SetTheme. Holds a string, hence atomic.Value not Bool.
 	theme atomic.Value
 
+	// concealStyle caches "nextcloud"/"basic_auth" — which disguise conceal
+	// mode uses at the login gate. Kept in sync via SetConcealStyle, and
+	// mirrored onto Auth.SetBasicAuthStyle at the same time so RequireAuth
+	// (which can't import this package) sees the same value.
+	concealStyle atomic.Value
+
 	// notifyMu guards notifyCfg, refreshed whenever the webhook/GPS-alert
 	// settings are saved from the admin Settings page.
 	notifyMu  sync.RWMutex
 	notifyCfg notify.Config
-
-	// loginLimiter rate-limits failed /login attempts per client IP.
-	loginLimiter *loginThrottle
 }
 
 // New constructs a Handler and parses all templates.
@@ -102,11 +105,19 @@ func New(database *db.DB, cfg *config.Config, am *auth.Manager, geo *geoip.Clien
 	if err != nil {
 		return nil, err
 	}
-	h := &Handler{DB: database, Cfg: cfg, Auth: am, Geo: geo, tmpl: t, loginLimiter: newLoginThrottle()}
+	h := &Handler{DB: database, Cfg: cfg, Auth: am, Geo: geo, tmpl: t}
 	if enabled, err := database.ConcealEnabled(); err != nil {
 		log.Printf("WARNING: could not load conceal-mode setting, defaulting to off: %v", err)
 	} else {
 		h.concealed.Store(enabled)
+		am.SetConcealed(enabled)
+	}
+	if style, err := database.ConcealStyle(); err != nil {
+		log.Printf("WARNING: could not load conceal-style setting, defaulting to %q: %v", db.DefaultConcealStyle, err)
+		h.concealStyle.Store(db.DefaultConcealStyle)
+	} else {
+		h.concealStyle.Store(style)
+		am.SetBasicAuthStyle(style == "basic_auth")
 	}
 	if enabled, err := database.GeoIPEnabled(); err != nil {
 		log.Printf("WARNING: could not load geoip-enabled setting, defaulting to on: %v", err)
@@ -191,22 +202,59 @@ func internalError(w http.ResponseWriter, context string, err error) {
 	http.Error(w, "internal error", http.StatusInternalServerError)
 }
 
+// concealedTemplates is every page a signed-out visitor can reach — the
+// only pages where the conceal-mode setting should ever change what's
+// rendered. /setup deliberately isn't here even though it's pre-auth: it
+// always shows real branding since an account doesn't exist to log into
+// yet, so there's no login-page disguise to apply.
+var concealedTemplates = map[string]bool{
+	"login.html": true,
+}
+
 // Concealed reports whether conceal mode is currently on.
 func (h *Handler) Concealed() bool { return h.concealed.Load() }
 
 // SetConcealed updates the in-memory conceal-mode cache. Call this right
-// after persisting the new value with DB.SetConcealEnabled.
+// after persisting the new value with DB.SetConcealEnabled, and call
+// h.Auth.SetConcealed with the same value right alongside it — RequireAuth
+// needs its own copy since the auth package can't import this one.
 func (h *Handler) SetConcealed(v bool) { h.concealed.Store(v) }
 
+// ConcealStyle returns "nextcloud" or "basic_auth".
+func (h *Handler) ConcealStyle() string { return h.concealStyle.Load().(string) }
+
+// SetConcealStyle updates the in-memory conceal-style cache. Call this
+// right after persisting the new value with DB.SetConcealStyle, and call
+// h.Auth.SetBasicAuthStyle(v == "basic_auth") right alongside it, same
+// reasoning as SetConcealed.
+func (h *Handler) SetConcealStyle(v string) { h.concealStyle.Store(v) }
+
 // render executes a named template with a base layout. Every page gets a
-// "Concealed" data key automatically so templates can switch their
+// "Concealed" data key automatically (the true, current setting value —
+// used by settings.html's own status pill/toggle, where the admin needs
+// to see and control the real state regardless of which page they're on)
+// and a "Disguised" key (whether *this specific page's* chrome should
+// actually show the Nextcloud disguise) so templates can switch their
 // title/favicon/branding without every call site remembering to pass it.
+//
+// Conceal mode's whole purpose is to protect a non-admin visitor who only
+// has the instance URL or a shared/shortened/cloned link from learning
+// Netra is what's running here — it was never meant to also disguise the
+// authenticated admin's own dashboard, since by definition nobody who's
+// already logged in needs protecting from that fact. concealedTemplates
+// is the (deliberately short) list of pages a signed-out visitor can
+// actually reach — everything else gets Disguised=false unconditionally,
+// so a new admin page added later is concealed-safe by default instead of
+// needing to remember to opt out.
 func (h *Handler) render(w http.ResponseWriter, name string, data map[string]any) {
 	if data == nil {
 		data = map[string]any{}
 	}
 	if _, ok := data["Concealed"]; !ok {
 		data["Concealed"] = h.Concealed()
+	}
+	if _, ok := data["Disguised"]; !ok {
+		data["Disguised"] = concealedTemplates[name] && h.Concealed()
 	}
 	if _, ok := data["AutoRefreshSeconds"]; !ok {
 		data["AutoRefreshSeconds"] = h.AutoRefreshSeconds()

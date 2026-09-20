@@ -1,3 +1,13 @@
+// Select the full value of a readonly "capture URL" field on click, so
+// copying it is one click instead of a manual select-drag. Wired via
+// addEventListener (not an inline onclick="" attribute) for the same
+// reason as the navbar hamburger — see nav.js.
+(function () {
+  document.querySelectorAll("[data-select-on-click]").forEach((el) => {
+    el.addEventListener("click", () => el.select());
+  });
+})();
+
 // Select-all + count-aware "Delete selected" button for the links table
 // (mirrors the same pattern on the event log — see events.js).
 (function () {
@@ -71,6 +81,27 @@
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !modal.hidden) close();
+  });
+})();
+
+// Row click navigates to that link's detail page — same destination as
+// clicking its label, just extended to the whole row (excluding the
+// checkbox, QR button, URL field, and the toggle/delete forms, which each
+// already do their own thing) so the user doesn't have to hit the small
+// label text specifically. Mirrors events.js's row-click-to-detail pattern.
+(function () {
+  const tbody = document.getElementById("linksBody");
+  if (!tbody) return;
+
+  tbody.addEventListener("click", (e) => {
+    if (e.target.closest(".select-cell") || e.target.closest(".qr-btn") ||
+        e.target.closest(".row-actions") || e.target.closest(".url-cell") ||
+        e.target.closest("a")) {
+      return;
+    }
+    const row = e.target.closest("tr[data-id]");
+    if (!row) return;
+    window.location.href = "/admin/links/" + row.dataset.id;
   });
 })();
 

@@ -2,7 +2,7 @@
 <!doctype html>
 <html lang="en"{{if eq .Theme "light"}} data-theme="light"{{else if eq .Theme "dark"}} data-theme="dark"{{end}}>
 <head>
-  <title>{{if .Concealed}}Personal settings - Nextcloud{{else}}Settings — Netra{{end}}</title>
+  <title>{{if .Disguised}}Personal settings - Nextcloud{{else}}Settings — Netra{{end}}</title>
   {{template "head" .}}
 </head>
 <body>
@@ -56,9 +56,9 @@
         timestamp, just without geo/ISP fields.
       </p>
       {{if .GeoIPEnabled}}
-        <p><span class="pill pill-on">GeoIP is ON</span></p>
+        <p class="settings-status"><span class="pill pill-on">GeoIP is ON</span></p>
       {{else}}
-        <p><span class="pill pill-off">GeoIP is OFF</span></p>
+        <p class="settings-status"><span class="pill pill-off">GeoIP is OFF</span></p>
       {{end}}
       <form method="post" action="/admin/settings/geoip">
         <input type="hidden" name="csrf_token" value="{{.CSRF}}">
@@ -146,11 +146,12 @@
     <section class="card">
       <h3>Conceal mode</h3>
       <p class="muted">
-        When enabled, the login page, dashboard title, and site favicon disguise this instance
-        as a self-hosted Nextcloud install. A casual visitor, port scanner, or screenshot of
-        your browser tab won't see "Netra" anywhere — the login form still only authenticates
-        your one real admin account exactly as before, and nothing extra is captured about what
-        anyone else types into it.
+        When enabled, the login page disguises this instance as a self-hosted Nextcloud install
+        — its title, favicon, and look. A non-admin visitor who only has the instance URL (or a
+        shared/shortened/cloned link) and hasn't logged in won't see "Netra" anywhere. Once
+        you're actually logged in, the dashboard always shows real Netra branding regardless of
+        this setting — concealment protects the login gate from someone who doesn't have admin
+        access, not the admin's own working session, since you already know what this is.
       </p>
       <p class="notice">
         This is cosmetic disguise only — page title, favicon, and the login screen's look. It
@@ -162,9 +163,9 @@
       </p>
 
       {{if .Concealed}}
-        <p><span class="pill pill-on">Conceal mode is ON</span> — this instance currently looks like Nextcloud.</p>
+        <p class="settings-status"><span class="pill pill-on">Conceal mode is ON</span> — this instance currently looks like {{if eq .ConcealStyle "basic_auth"}}a generic HTTP Basic Auth prompt{{else}}Nextcloud{{end}}.</p>
       {{else}}
-        <p><span class="pill pill-off">Conceal mode is OFF</span> — this instance shows as Netra.</p>
+        <p class="settings-status"><span class="pill pill-off">Conceal mode is OFF</span> — this instance shows as Netra.</p>
       {{end}}
 
       <form method="post" action="/admin/settings/conceal">
@@ -172,6 +173,24 @@
         <button type="submit" class="btn {{if .Concealed}}btn-ghost{{else}}btn-primary{{end}}">
           {{if .Concealed}}Disable conceal mode{{else}}Enable conceal mode{{end}}
         </button>
+      </form>
+
+      <h4>Disguise style</h4>
+      <p class="muted small">
+        Only takes effect while conceal mode above is on. <strong>Nextcloud login page</strong>
+        replicates a real Nextcloud login screen. <strong>HTTP Basic Auth</strong> instead shows
+        the browser's own native username/password prompt — no login page at all, so there's no
+        page markup, title, or favicon for anything to look like in the first place. Handled
+        entirely by the application itself (not your reverse proxy), so it works the same
+        whether or not you're behind nginx/Caddy.
+      </p>
+      <form method="post" action="/admin/settings/conceal-style" class="settings-form">
+        <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+        <div class="radio-row">
+          <label><input type="radio" name="conceal_style" value="nextcloud" {{if ne .ConcealStyle "basic_auth"}}checked{{end}}> Nextcloud login page</label>
+          <label><input type="radio" name="conceal_style" value="basic_auth" {{if eq .ConcealStyle "basic_auth"}}checked{{end}}> HTTP Basic Auth</label>
+        </div>
+        <button type="submit" class="btn btn-primary">Save disguise style</button>
       </form>
     </section>
   </main>
