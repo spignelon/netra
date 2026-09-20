@@ -56,9 +56,9 @@
         timestamp, just without geo/ISP fields.
       </p>
       {{if .GeoIPEnabled}}
-        <p><span class="pill pill-on">GeoIP is ON</span></p>
+        <p class="settings-status"><span class="pill pill-on">GeoIP is ON</span></p>
       {{else}}
-        <p><span class="pill pill-off">GeoIP is OFF</span></p>
+        <p class="settings-status"><span class="pill pill-off">GeoIP is OFF</span></p>
       {{end}}
       <form method="post" action="/admin/settings/geoip">
         <input type="hidden" name="csrf_token" value="{{.CSRF}}">
@@ -162,9 +162,9 @@
       </p>
 
       {{if .Concealed}}
-        <p><span class="pill pill-on">Conceal mode is ON</span> — this instance currently looks like Nextcloud.</p>
+        <p class="settings-status"><span class="pill pill-on">Conceal mode is ON</span> — this instance currently looks like Nextcloud.</p>
       {{else}}
-        <p><span class="pill pill-off">Conceal mode is OFF</span> — this instance shows as Netra.</p>
+        <p class="settings-status"><span class="pill pill-off">Conceal mode is OFF</span> — this instance shows as Netra.</p>
       {{end}}
 
       <form method="post" action="/admin/settings/conceal">

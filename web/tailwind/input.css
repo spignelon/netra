@@ -236,9 +236,10 @@
   .events-row-clickable:hover { @apply bg-hover; }
 
   .settings-form h4 { @apply mt-4 mb-1 text-sm; }
+  .settings-status { @apply mb-3; }
   .checkbox-label { @apply flex-row! items-center gap-2! font-normal!; }
   .checkbox-label input[type="checkbox"] { @apply w-auto; }
-  .radio-row { @apply flex flex-wrap gap-4; }
+  .radio-row { @apply flex flex-wrap gap-4 mb-3; }
   .radio-row label { @apply flex-row! items-center gap-2! font-normal! mb-0!; }
   .radio-row input[type="radio"] { @apply w-auto; }
 
