@@ -21,8 +21,7 @@
 {{define "topnav"}}
 {{if .Disguised}}
 <header class="topbar topbar-conceal">
-  <button type="button" class="nav-toggle" aria-label="Menu" aria-expanded="false"
-    onclick="var n=document.getElementById('mobileNav'); var open=n.hidden; n.hidden=!open; this.setAttribute('aria-expanded', open);">&#9776;</button>
+  <button type="button" class="nav-toggle" data-nav-toggle aria-label="Menu" aria-expanded="false">&#9776;</button>
   <a class="brand" href="/admin">
     <span class="conceal-logo-badge"><img src="/static/logo.svg" alt="Netra" style="height:18px;width:auto;"></span>
   </a>
@@ -49,8 +48,7 @@
 </nav>
 {{else}}
 <header class="topbar">
-  <button type="button" class="nav-toggle" aria-label="Menu" aria-expanded="false"
-    onclick="var n=document.getElementById('mobileNav'); var open=n.hidden; n.hidden=!open; this.setAttribute('aria-expanded', open);">&#9776;</button>
+  <button type="button" class="nav-toggle" data-nav-toggle aria-label="Menu" aria-expanded="false">&#9776;</button>
   <a class="brand" href="/admin">
     <img src="/static/logo.svg" alt="Netra" style="height:22px;width:auto;">
     Netra
@@ -77,4 +75,5 @@
   </form>
 </nav>
 {{end}}
+<script src="/static/nav.js"></script>
 {{end}}

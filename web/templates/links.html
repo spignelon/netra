@@ -114,7 +114,7 @@
               <td><a href="/admin/links/{{.ID}}">{{linkName .}}</a></td>
               <td><span class="badge">{{typeBadge .Type}}</span></td>
               <td class="mono url-cell">
-                <input type="text" readonly value="{{shareURL $.BaseURL .}}" onclick="this.select()">
+                <input type="text" readonly value="{{shareURL $.BaseURL .}}" data-select-on-click>
               </td>
               <td>
                 <button type="button" class="btn btn-ghost btn-sm qr-btn" title="Show QR code"

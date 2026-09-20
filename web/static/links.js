@@ -1,3 +1,13 @@
+// Select the full value of a readonly "capture URL" field on click, so
+// copying it is one click instead of a manual select-drag. Wired via
+// addEventListener (not an inline onclick="" attribute) for the same
+// reason as the navbar hamburger — see nav.js.
+(function () {
+  document.querySelectorAll("[data-select-on-click]").forEach((el) => {
+    el.addEventListener("click", () => el.select());
+  });
+})();
+
 // Select-all + count-aware "Delete selected" button for the links table
 // (mirrors the same pattern on the event log — see events.js).
 (function () {

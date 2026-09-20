@@ -33,7 +33,7 @@
     <section class="card">
       <label>Capture URL</label>
       <div class="share-url-row">
-        <input type="text" readonly value="{{.ShareURL}}" onclick="this.select()" class="mono full-width">
+        <input type="text" readonly value="{{.ShareURL}}" data-select-on-click class="mono full-width">
         <button type="button" class="btn btn-ghost qr-btn" title="Show QR code"
                 data-qr-url="/admin/links/{{.Link.ID}}/qr.png" data-qr-name="{{linkName .Link}}">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
